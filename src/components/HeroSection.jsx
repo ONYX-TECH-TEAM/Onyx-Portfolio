@@ -1,7 +1,10 @@
+import { lazy, Suspense } from 'react'
+
 import LoadingScreen from './LoadingScreen.jsx'
-import OnyxScene from './OnyxScene.jsx'
 import SystemApproachOverlay from './SystemApproachOverlay.jsx'
 import ProjectTimeline from './ProjectTimeline.jsx'
+
+const OnyxScene = lazy(() => import('./OnyxScene.jsx'))
 
 function HeroSection({
 scrollProgress,
@@ -10,6 +13,7 @@ projectLocalProgress,
 projectIndex,
 projectCount,
 timelineConfig,
+transitionViewports,
 caseFileTransitionRef,
 
 }) {
@@ -18,9 +22,7 @@ return ( <section
          aria-label="Onyx introduction"
      >
 <SystemApproachOverlay
-scrollProgress={
-scrollProgress
-}
+transitionViewports={transitionViewports}
 />
 
 
@@ -42,27 +44,17 @@ scrollProgress
             }
         />
 
-        <OnyxScene
-            caseFileTransitionRef={caseFileTransitionRef}
-            scrollProgress={
-                scrollProgress
-            }
-            projectTimelineProgress={
-                projectTimelineProgress
-            }
-            projectLocalProgress={
-                projectLocalProgress
-            }
-            projectIndex={
-                projectIndex
-            }
-            projectCount={
-                projectCount
-            }
-            timelineConfig={
-                timelineConfig
-            }
-        />
+        <Suspense fallback={null}>
+            <OnyxScene
+                caseFileTransitionRef={caseFileTransitionRef}
+                scrollProgress={scrollProgress}
+                projectTimelineProgress={projectTimelineProgress}
+                projectLocalProgress={projectLocalProgress}
+                projectIndex={projectIndex}
+                projectCount={projectCount}
+                timelineConfig={timelineConfig}
+            />
+        </Suspense>
 
         <LoadingScreen />
     </section>

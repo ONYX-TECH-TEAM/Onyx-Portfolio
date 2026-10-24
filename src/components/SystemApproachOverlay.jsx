@@ -19,106 +19,65 @@ function smoothStep(value) {
     return value * value * (3 - 2 * value)
 }
 
-function SystemApproachOverlay({ scrollProgress }) {
+function SystemApproachOverlay({ transitionViewports = 1 }) {
     const overlay = useRef(null)
 
     useEffect(() => {
-        let frameId
-        let previousProgress = null
-        let previousWidth = null
-        let previousHeight = null
-
         const update = () => {
-            if (overlay.current) {
-                const progress = scrollProgress.current
-                const width = window.innerWidth
-                const height = window.innerHeight
+            if (!overlay.current) return
 
-                if (
-                    progress === previousProgress &&
-                    width === previousWidth &&
-                    height === previousHeight
-                ) {
-                    frameId =
-                        window.requestAnimationFrame(update)
-                    return
-                }
+            const width = window.innerWidth
+            const height = window.innerHeight
+            const progress = clamp(
+                window.scrollY /
+                    Math.max(height * transitionViewports, 1),
+                0,
+                1,
+            )
+            const titleProgress = smoothStep(
+                clamp(progress / TITLE_MOVE_END, 0, 1),
+            )
+            const titleScale = lerp(1, TITLE_CLOSE_SCALE, titleProgress)
+            const isMobile = width < 640
+            const endpointLeft = isMobile ? 24 : 35
+            const endpointTop = isMobile ? 32 : 60
 
-                previousProgress = progress
-                previousWidth = width
-                previousHeight = height
+            overlay.current.style.setProperty(
+                '--system-progress',
+                progress.toFixed(4),
+            )
 
-                const titleProgress = smoothStep(
-                    clamp(
-                        progress / TITLE_MOVE_END,
-                        0,
-                        1,
-                    ),
-                )
+            overlay.current.style.setProperty(
+                '--title-left',
+                `${lerp(width / 2, endpointLeft, titleProgress).toFixed(2)}px`,
+            )
 
-                const titleScale = lerp(
-                    1,
-                    TITLE_CLOSE_SCALE,
-                    titleProgress,
-                )
+            overlay.current.style.setProperty(
+                '--title-top',
+                `${lerp(height / 2, endpointTop, titleProgress).toFixed(2)}px`,
+            )
 
-                const isMobile = width < 640
+            overlay.current.style.setProperty(
+                '--title-translate',
+                `${(-50 * (1 - titleProgress)).toFixed(2)}%`,
+            )
 
-                const endpointLeft = isMobile
-                    ? 24
-                    : 35
-
-                const endpointTop = isMobile
-                    ? 32
-                    : 60
-                      
-
-                overlay.current.style.setProperty(
-                    '--system-progress',
-                    progress.toFixed(4),
-                )
-
-                overlay.current.style.setProperty(
-                    '--title-left',
-                    `${lerp(
-                        width / 2,
-                        endpointLeft,
-                        titleProgress,
-                    ).toFixed(2)}px`,
-                )
-
-                overlay.current.style.setProperty(
-                    '--title-top',
-                    `${lerp(
-                        height / 2,
-                        endpointTop,
-                        titleProgress,
-                    ).toFixed(2)}px`,
-                )
-
-                overlay.current.style.setProperty(
-                    '--title-translate',
-                    `${(
-                        -50 *
-                        (1 - titleProgress)
-                    ).toFixed(2)}%`,
-                )
-
-                overlay.current.style.setProperty(
-                    '--title-scale',
-                    titleScale.toFixed(4),
-                )
-            }
-
-            frameId =
-                window.requestAnimationFrame(update)
+            overlay.current.style.setProperty(
+                '--title-scale',
+                titleScale.toFixed(4),
+            )
         }
 
         update()
 
-        return () =>
-            window.cancelAnimationFrame(frameId)
-    }, [scrollProgress])
+        window.addEventListener('scroll', update, { passive: true })
+        window.addEventListener('resize', update)
+
+        return () => {
+            window.removeEventListener('scroll', update)
+            window.removeEventListener('resize', update)
+        }
+    }, [transitionViewports])
 
     return (
         <div

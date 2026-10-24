@@ -6,7 +6,6 @@ import {
 } from '@react-three/fiber'
 
 import {
-    useEffect,
     useMemo,
     useRef,
 } from 'react'
@@ -18,10 +17,7 @@ import {
 } from 'three'
 
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
-import {
-    beginFirstRenderDiagnostic,
-} from '../utils/webglWarmupDiagnostics.js'
-import { warmProductionRenderPath } from '../utils/warmProductionRenderPath.js'
+import { recordFirstRenderDiagnostic } from '../utils/recordFirstRenderDiagnostic.js'
 
 const MODEL_URL =
     '/models/onyx-rock.glb'
@@ -79,7 +75,6 @@ const ONYX_HIGHLIGHT_DECAY =
 
 function OnyxModel({
     onyxRef,
-    closeWarmupObjectsRef,
     introProgress,
     projectLocalProgress,
     projectIndex,
@@ -95,17 +90,11 @@ function OnyxModel({
     const entranceStartTime =
         useRef(null)
 
-    const closeLightWarmupActive =
-        useRef(false)
-
     const closeFirstRenderCaptured =
         useRef(false)
 
-    const {
-        gl,
-        camera,
-        scene: renderScene,
-    } = useThree()
+    const gl = useThree((state) => state.gl)
+    const renderScene = useThree((state) => state.scene)
 
     const lightWorldPosition =
         useMemo(
@@ -134,91 +123,6 @@ function OnyxModel({
 
             return source?.clone(true)
         }, [scene])
-
-    useEffect(() => {
-        if (
-            !group.current ||
-            !onyxLightRef.current
-        ) {
-            return
-        }
-
-        let cancelled = false
-        let idleId = null
-        let timeoutId = null
-
-        const warmCloseLightProgram = async () => {
-            if (cancelled) {
-                return
-            }
-
-            if (!group.current || !onyxLightRef.current) return
-
-            closeLightWarmupActive.current = true
-
-            try {
-                await warmProductionRenderPath({
-                    name: 'close',
-                    renderer: gl,
-                    scene: renderScene,
-                    camera,
-                    extraObjects: [
-                        group.current,
-                        ...(closeWarmupObjectsRef?.current ?? []),
-                    ],
-                    extraLights: [onyxLightRef.current],
-                })
-            } finally {
-                closeLightWarmupActive.current = false
-                if (onyxLightRef.current) {
-                    onyxLightRef.current.visible =
-                        onyxLightRef.current.intensity > 0.005
-                }
-            }
-        }
-
-        if (
-            'requestIdleCallback' in
-            window
-        ) {
-            idleId =
-                window.requestIdleCallback(
-                    warmCloseLightProgram,
-                    { timeout: 2500 },
-                )
-        } else {
-            timeoutId =
-                window.setTimeout(
-                    warmCloseLightProgram,
-                    750,
-                )
-        }
-
-        return () => {
-            cancelled = true
-
-            if (
-                idleId !== null &&
-                'cancelIdleCallback' in
-                    window
-            ) {
-                window.cancelIdleCallback(
-                    idleId,
-                )
-            }
-
-            if (timeoutId !== null) {
-                window.clearTimeout(
-                    timeoutId,
-                )
-            }
-        }
-    }, [
-        gl,
-        renderScene,
-        onyx,
-        closeWarmupObjectsRef,
-    ])
 
     useFrame((state, delta) => {
         if (!group.current) {
@@ -556,8 +460,7 @@ function OnyxModel({
             }
 
             onyxLightRef.current.visible =
-                lightActive ||
-                closeLightWarmupActive.current
+                lightActive
 
             const targetIntensity =
                 selectionStrength *
@@ -593,7 +496,7 @@ function OnyxModel({
             ) {
                 closeFirstRenderCaptured.current =
                     true
-                beginFirstRenderDiagnostic(
+                recordFirstRenderDiagnostic(
                     'close',
                     renderScene,
                     gl,

@@ -1,6 +1,8 @@
 import {
+    lazy,
     useLayoutEffect,
     useRef,
+    Suspense,
 } from 'react'
 
 import {
@@ -13,8 +15,9 @@ import {
 
 import FuturePortfolioSection from './components/FuturePortfolioSection.jsx'
 import HeroSection from './components/HeroSection.jsx'
-import CaseFilePage from './pages/CaseFilePage.jsx'
 import { useScrollTimeline } from './hooks/useScrollProgress.js'
+
+const CaseFilePage = lazy(() => import('./pages/CaseFilePage.jsx'))
 
 export const PORTFOLIO_SCROLL_STORAGE_KEY =
     'onyx-portfolio-return-scroll-y'
@@ -138,6 +141,7 @@ function PortfolioHome({
                 projectIndex={timeline.projectIndex}
                 projectCount={PROJECT_TIMELINE.projectCount}
                 timelineConfig={PROJECT_TIMELINE}
+                transitionViewports={PROJECT_TIMELINE.transitionViewports}
             />
 
             <FuturePortfolioSection
@@ -270,7 +274,9 @@ function AppRoutes() {
                                 />
                             )
                             : (
-                                <CaseFilePage />
+                                <Suspense fallback={null}>
+                                    <CaseFilePage />
+                                </Suspense>
                             )
                     }
                 />

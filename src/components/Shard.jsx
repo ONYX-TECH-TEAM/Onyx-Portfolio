@@ -19,24 +19,10 @@ import {
 import {
     MeshoptDecoder,
 } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
-import {
-    beginFirstRenderDiagnostic,
-} from '../utils/webglWarmupDiagnostics.js'
+import { recordFirstRenderDiagnostic } from '../utils/recordFirstRenderDiagnostic.js'
 
 const SHARD_01_URL =
     '/models/shard-01.glb'
-
-const SHARD_02_URL =
-    '/models/shard-02.glb'
-
-const SHARD_03_URL =
-    '/models/shard-03.glb'
-
-const SHARD_04_URL =
-    '/models/shard-04.glb'
-
-const SHARD_05_URL =
-    '/models/shard-05.glb'
 
 const DEFAULT_POSITION = [
     4.5,
@@ -60,13 +46,6 @@ const DEFAULT_FLOAT_SPEED =
 
 const SELECTION_LIGHT_COLOR =
     new Color('#ffd2a1')
-
-/* -------------------------------------------------------------------------- */
-/* LOW-DETAIL VISUAL ATTENUATION                                              */
-/* -------------------------------------------------------------------------- */
-
-const LOW_DETAIL_COLOR_SCALE = 0.82
-const LOW_DETAIL_EMISSIVE_SCALE = 0.70
 
 /* -------------------------------------------------------------------------- */
 /* LOD                                                                        */
@@ -301,29 +280,18 @@ function LowDetailShardVisual({
     targetRef,
     visible,
 }) {
-    const { scene } =
-        useGLTF(
-            url,
-            true,
-            true,
-            (loader) => {
-                loader.setMeshoptDecoder(
-                    MeshoptDecoder,
-                )
-            },
-        )
+    const { scene } = useGLTF(url, true, true, (loader) => {
+        loader.setMeshoptDecoder(MeshoptDecoder)
+    })
 
     return (
         <ShardVisual
             scene={scene}
             targetRef={targetRef}
             visible={visible}
-            colorScale={
-                LOW_DETAIL_COLOR_SCALE
-            }
-            emissiveScale={
-                LOW_DETAIL_EMISSIVE_SCALE
-            }
+            cloneScene={true}
+            colorScale={0.82}
+            emissiveScale={0.7}
         />
     )
 }
@@ -892,7 +860,7 @@ function Shard({
                     shardIndex + 1,
                 ).padStart(2, '0')}`
 
-            beginFirstRenderDiagnostic(
+            recordFirstRenderDiagnostic(
                 projectName,
                 renderScene,
                 gl,
@@ -909,13 +877,13 @@ function Shard({
                 scale={scale}
             >
                 {lowUrl && (
-                    <LowDetailShardVisual
-                        url={lowUrl}
-                        targetRef={
-                            lowDetailRef
-                        }
-                        visible={true}
-                    />
+                    <Suspense fallback={null}>
+                        <LowDetailShardVisual
+                            url={lowUrl}
+                            targetRef={lowDetailRef}
+                            visible={true}
+                        />
+                    </Suspense>
                 )}
 
                 {highDetailMounted && (
@@ -952,64 +920,5 @@ function Shard({
         </>
     )
 }
-
-/* -------------------------------------------------------------------------- */
-/* HIGH-DETAIL PRELOADING                                                     */
-/* -------------------------------------------------------------------------- */
-
-useGLTF.preload(
-    SHARD_01_URL,
-    true,
-    true,
-    (loader) => {
-        loader.setMeshoptDecoder(
-            MeshoptDecoder,
-        )
-    },
-)
-
-useGLTF.preload(
-    SHARD_02_URL,
-    true,
-    true,
-    (loader) => {
-        loader.setMeshoptDecoder(
-            MeshoptDecoder,
-        )
-    },
-)
-
-useGLTF.preload(
-    SHARD_03_URL,
-    true,
-    true,
-    (loader) => {
-        loader.setMeshoptDecoder(
-            MeshoptDecoder,
-        )
-    },
-)
-
-useGLTF.preload(
-    SHARD_04_URL,
-    true,
-    true,
-    (loader) => {
-        loader.setMeshoptDecoder(
-            MeshoptDecoder,
-        )
-    },
-)
-
-useGLTF.preload(
-    SHARD_05_URL,
-    true,
-    true,
-    (loader) => {
-        loader.setMeshoptDecoder(
-            MeshoptDecoder,
-        )
-    },
-)
 
 export default Shard

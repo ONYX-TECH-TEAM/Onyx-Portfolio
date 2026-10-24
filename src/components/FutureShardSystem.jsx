@@ -1,56 +1,8 @@
 import { useFrame } from '@react-three/fiber'
 
-import { useGLTF } from '@react-three/drei'
-
 import { useRef } from 'react'
 
-import {
-    MeshoptDecoder,
-} from 'three/examples/jsm/libs/meshopt_decoder.module.js'
-
 import Shard from './Shard.jsx'
-
-const SHARD_MODEL_URLS = [
-    '/models/shard-01.glb',
-    '/models/shard-02.glb',
-    '/models/shard-03.glb',
-    '/models/shard-04.glb',
-    '/models/shard-05.glb',
-]
-
-const LOW_DETAIL_SHARD_MODEL_URLS = [
-    '/models/shard-01-low.glb',
-    '/models/shard-02-low.glb',
-    '/models/shard-03-low.glb',
-    '/models/shard-04-low.glb',
-    '/models/shard-05-low.glb',
-]
-
-for (const url of SHARD_MODEL_URLS) {
-    useGLTF.preload(
-        url,
-        true,
-        true,
-        (loader) => {
-            loader.setMeshoptDecoder(
-                MeshoptDecoder,
-            )
-        },
-    )
-}
-
-for (const url of LOW_DETAIL_SHARD_MODEL_URLS) {
-    useGLTF.preload(
-        url,
-        true,
-        true,
-        (loader) => {
-            loader.setMeshoptDecoder(
-                MeshoptDecoder,
-            )
-        },
-    )
-}
 
 const radiusX = 3.35
 const radiusZ = 1.05

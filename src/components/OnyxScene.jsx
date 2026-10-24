@@ -37,10 +37,6 @@ import {
     getSceneHoldProgress,
 } from '../utils/sceneHoldProgress.js'
 
-import {
-    installWebGLWarmupDiagnostics,
-    markFirstUserScroll,
-} from '../utils/webglWarmupDiagnostics.js'
 
 const AMBIENT_ORBIT_ROTATION_SPEED =
     0.035
@@ -576,28 +572,26 @@ function WebGLWarmupDiagnostics() {
     )
 
     useEffect(() => {
-        installWebGLWarmupDiagnostics(
-            gl,
-        )
+        if (!import.meta.env.DEV) return undefined
 
-        window.addEventListener(
-            'wheel',
-            markFirstUserScroll,
-            {
+        let cancelled = false
+        let markFirstUserScroll
+        import('../utils/webglWarmupDiagnostics.js').then((diagnostics) => {
+            if (cancelled) return
+            diagnostics.installWebGLWarmupDiagnostics(gl)
+            markFirstUserScroll = diagnostics.markFirstUserScroll
+            window.addEventListener('wheel', markFirstUserScroll, {
                 once: true,
                 passive: true,
-            },
-        )
+            })
+        })
 
         return () => {
-            window.removeEventListener(
-                'wheel',
-                markFirstUserScroll,
-            )
-
-            window
-                .__onyxGpuWarmupDiagnostics
-                ?.restore?.()
+            cancelled = true
+            if (markFirstUserScroll) {
+                window.removeEventListener('wheel', markFirstUserScroll)
+            }
+            window.__onyxGpuWarmupDiagnostics?.restore?.()
         }
     }, [gl])
 
@@ -724,9 +718,6 @@ function OnyxScene({
 
     const onyxRef =
         useRef(null)
-
-    const closeWarmupObjectsRef =
-        useRef([])
 
     const cameraDebugElementRef =
         useRef(null)
@@ -1018,24 +1009,11 @@ function OnyxScene({
                 {/* -------------------------------------------------------- */}
 
                 <SpaceEnvironment
-                    warmupObjectRefs={
-                        closeWarmupObjectsRef
-                    }
-                    scrollProgress={
-                        sceneScrollProgress
-                    }
-                    projectLocalProgress={
-                        sceneProjectLocalProgress
-                    }
-                    projectIndex={
-                        sceneProjectIndex
-                    }
-                    sceneStates={
-                        sceneStates
-                    }
-                    previewState={
-                        previewState
-                    }
+                    scrollProgress={sceneScrollProgress}
+                    projectLocalProgress={sceneProjectLocalProgress}
+                    projectIndex={sceneProjectIndex}
+                    sceneStates={sceneStates}
+                    previewState={previewState}
                 />
 
                 {/* -------------------------------------------------------- */}
@@ -1125,9 +1103,6 @@ function OnyxScene({
                             onyxRef={
                                 onyxRef
                             }
-                            closeWarmupObjectsRef={
-                                closeWarmupObjectsRef
-                            }
                             introProgress={
                                 sceneScrollProgress
                             }
@@ -1150,7 +1125,7 @@ function OnyxScene({
                     {/* ORBITAL SYSTEM                                          */}
                     {/* ---------------------------------------------------- */}
 
-                    <OrbitalSystem
+            <OrbitalSystem
                         caseFileTransitionRef={caseFileTransitionRef}
                         scrollProgress={
                             sceneScrollProgress

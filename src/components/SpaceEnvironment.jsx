@@ -1,6 +1,5 @@
 import {
     useFrame,
-    useThree,
 } from '@react-three/fiber'
 import {
     AdditiveBlending,
@@ -10,7 +9,6 @@ import {
     Float32BufferAttribute,
     Line,
     LineBasicMaterial,
-    Mesh,
     Points,
     PointsMaterial,
     ShaderMaterial,
@@ -1422,19 +1420,12 @@ function ShootingStars() {
 /* -------------------------------------------------------------------------- */
 
 function SpaceEnvironment({
-    warmupObjectRefs,
     scrollProgress,
     projectLocalProgress,
     projectIndex,
     sceneStates,
     previewState,
 }) {
-    const {
-        gl,
-        camera,
-        scene,
-    } = useThree()
-
     const environmentRef =
         useRef(null)
 
@@ -1590,139 +1581,6 @@ function SpaceEnvironment({
                 ),
             [],
         )
-
-    /* ------------------------------------------------------------------------ */
-    /* SHADER PREWARM                                                           */
-    /* ------------------------------------------------------------------------ */
-
-    useEffect(() => {
-        let cancelled = false
-
-        const warmup = async () => {
-            await new Promise(
-                (resolve) => {
-                    requestAnimationFrame(
-                        resolve,
-                    )
-                },
-            )
- 
-            if (cancelled) {
-                return
-            }
-
-            /*
-             * The real nebula meshes begin with visible=false.
-             * Compile temporary visible meshes instead so WebGL can
-             * build the exact shader programs before the first reveal.
-             */
-            const warmupGeometry =
-                new BufferGeometry()
-
-            warmupGeometry.setAttribute(
-                'position',
-                new Float32BufferAttribute(
-                    new Float32Array([
-                        -1, -1, 0,
-                        3, -1, 0,
-                        -1, 3, 0,
-                    ]),
-                    3,
-                ),
-            )
-
-            const backWarmupMesh =
-                new Mesh(
-                    warmupGeometry,
-                    nebulaBackMaterial,
-                )
-
-            const frontWarmupMesh =
-                new Mesh(
-                    warmupGeometry,
-                    nebulaFrontMaterial,
-                )
-
-            try {
-                await Promise.all([
-                    gl.compileAsync(
-                        backWarmupMesh,
-                        camera,
-                        scene,
-                    ),
-
-                    gl.compileAsync(
-                        frontWarmupMesh,
-                        camera,
-                        scene,
-                    ),
-                ])
-
-                if (cancelled) {
-                    return
-                }
-
-                /*
-                 * These materials use onBeforeCompile, so warm their
-                 * custom point shader variants as well.
-                 */
-                if (farRef.current) {
-                    await gl.compileAsync(
-                        farRef.current,
-                        camera,
-                        scene,
-                    )
-                }
-
-                if (cancelled) {
-                    return
-                }
-
-                if (midRef.current) {
-                    await gl.compileAsync(
-                        midRef.current,
-                        camera,
-                        scene,
-                    )
-                }
-
-                if (cancelled) {
-                    return
-                }
-
-                if (dustRef.current) {
-                    await gl.compileAsync(
-                        dustRef.current,
-                        camera,
-                        scene,
-                    )
-                }
-            } catch (error) {
-                /*
-                 * Warmup is an optimization only.
-                 * Never allow a precompile failure to break the scene.
-                 */
-                console.warn(
-                    '[SpaceEnvironment] shader warmup failed',
-                    error,
-                )
-            } finally {
-                warmupGeometry.dispose()
-            }
-        }
-
-        warmup()
-
-        return () => {
-            cancelled = true
-        }
-    }, [
-        gl,
-        camera,
-        scene,
-        nebulaBackMaterial,
-        nebulaFrontMaterial,
-    ])
 
     useFrame((state, delta) => {
         if (
@@ -2260,12 +2118,7 @@ function SpaceEnvironment({
 
             {/* OUTER ATMOSPHERIC SHELL */}
             <mesh
-                ref={(node) => {
-                    nebulaBackRef.current = node
-                    if (warmupObjectRefs) {
-                        warmupObjectRefs.current[0] = node
-                    }
-                }}
+                ref={nebulaBackRef}
                 visible={false}
                 position={[0, 0, 0]}
                 renderOrder={-20}
@@ -2288,12 +2141,7 @@ function SpaceEnvironment({
 
             {/* INNER ATMOSPHERIC SHELL */}
             <mesh
-                ref={(node) => {
-                    nebulaFrontRef.current = node
-                    if (warmupObjectRefs) {
-                        warmupObjectRefs.current[1] = node
-                    }
-                }}
+                ref={nebulaFrontRef}
                 visible={false}
                 position={[0, 0, 0]}
                 renderOrder={-19}
